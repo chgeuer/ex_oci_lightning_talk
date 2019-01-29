@@ -1,4 +1,6 @@
-# ExOciLightningTalk
+# OCI Lightning Talk 
+
+https://tinyurl.com/oci20190129
 
 ```bash
 cd /mnt/c/github/chgeuer/ex_oci_lightning_talk
@@ -7,13 +9,19 @@ cd /mnt/c/github/chgeuer/ex_oci_lightning_talk
 ```
 
 ```elixir
+#
 # Elixir - What's this |> about?
+#
+# a |> function(b,c) == function(a,b,c)
+#
 10 - 2
 Kernel.-(10, 2)
 10 |> Kernel.-(2)
 
 # 10 - 2 - 4
-10 |> Kernel.-(2) |> Kernel.-(4)
+10 |> Kernel.-(2) |> Kernel.-(1)
+
+
 
 
 #
@@ -74,22 +82,38 @@ pid |> DeviceAuthenticator.get_device_code()
 
 token
 
-JOSE.JWT.peek(token)
+token |> JOSE.JWT.peek()
+
+token |> JOSE.JWT.peek() |> Map.get(:fields) |> Enum.map( fn({k,v}) -> "#{k |> String.pad_trailing(12, " ")}: #{inspect(v)}" end) |> Enum.join("\n") |> IO.puts()
 
 # Functional (LINQ-style) navigating through the structure
 token = pid |> DeviceAuthenticator.get_device_code() |> elem(1) |> Map.get(:access_token)
 
+#
+# Create an HttpClient with BearerToken set
+#
 conn = token |> Microsoft.Azure.Management.Resources.Connection.new()
+
+#
+# Fetch list of subscriptions
+#
+subscription_name = "chgeuer-work"
 
 subscriptions = conn |> Microsoft.Azure.Management.Subscription.Api.Subscriptions.subscriptions_list(api_version.subscription)
 
-subscription_id = subscriptions |> elem(1) |> Map.get(:value) |> Enum.filter(&(&1 |> Map.get(:displayName) == "chgeuer-work")) |> hd |> Map.get(:subscriptionId)
+subscription_id = subscriptions |>
+   elem(1) |>
+   Map.get(:value) |>
+   Enum.filter(&(&1 |> Map.get(:displayName) == subscription_name)) |>
+   hd |>
+   Map.get(:subscriptionId)
 
 alias Microsoft.Azure.Management.Storage.Api.StorageAccounts, as: StorageManagement
 
 storage_accounts = conn |> StorageManagement.storage_accounts_list(api_version.storage, subscription_id)
 
 my_preferred_account = "erlang"
+
 storage_account = storage_accounts |> elem(1) |> Map.get(:value) |> Enum.filter(&(&1 |> Map.get(:name) == my_preferred_account)) |> Enum.take(1) |> hd
 
 storage_account_id = storage_account.id
@@ -103,15 +127,14 @@ resource_group_name = storage_account_id |> String.split("/") |> Enum.at(4)
 
 {:ok, %{keys: [ %{value: storage_account_key}, _]}} = conn |> StorageManagement.storage_accounts_list_keys(resource_group_name, storage_account_name, api_version.storage, subscription_id)
 
+
+storage_account_name = "SAMPLE_STORAGE_ACCOUNT_NAME" |> System.get_env()
+storage_account_key = "SAMPLE_STORAGE_ACCOUNT_KEY" |> System.get_env()
+
+
 storage = %Microsoft.Azure.Storage{account_name: storage_account_name, account_key: storage_account_key, cloud_environment_suffix: "core.windows.net" }
 
 alias Microsoft.Azure.Storage.{Container, Blob}
-
-container = storage |> Container.new("ocidemo3")
-
-container
-
-container |> Container.create_container()
 
 #
 # List container names
@@ -121,14 +144,17 @@ storage |> Container.list_containers() |> elem(1) |> Map.get(:containers) |> Enu
 #
 # Delete a bunch of containers
 #
-["ocidemo3"] |> Enum.map(fn(c) -> storage |> Container.new(c) |> Container.delete_container() end)
+["philippdemo123"] |> Enum.map(fn(c) -> storage |> Container.new(c) |> Container.delete_container() end)
 
 
+container_name = "oci123"
 
-container_name = "microsoftfun"
 storage |> Container.new(container_name) |> Container.create_container()
+
 storage |> Container.new(container_name) |> Container.set_container_acl_public_access_container()
+
 storage |> Container.new(container_name) |> Blob.upload_file("/mnt/c/Users/chgeuer/Videos/Microsoft fun/Bill Gates as Austin Powers-fI_xuFA18m4.mp4")
+
 storage |> Container.new(container_name) |> Container.list_blobs()
 
 storage |>
@@ -142,4 +168,6 @@ storage |>
            &1.properties.content_length
         }
     ))
+
+System.halt
 ```
