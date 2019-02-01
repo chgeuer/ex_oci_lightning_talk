@@ -1,6 +1,6 @@
-# OCI Lightning Talk 
+# OCI Lightning Talk
 
-https://tinyurl.com/oci20190129
+[source](https://tinyurl.com/oci20190129)
 
 ```bash
 cd /mnt/c/github/chgeuer/ex_oci_lightning_talk
@@ -22,6 +22,7 @@ Kernel.-(10, 2)
 10 |> Kernel.-(2) |> Kernel.-(1)
 
 
+Timex.now() |> Timex.add(Timex.Duration.from_seconds(3600))
 
 
 #
@@ -43,6 +44,7 @@ Fiddler.enable()
 # Create a 'process' which can poll Azure AD tokens
 #
 {:ok, pid} = "chgeuerfte.onmicrosoft.com" |> DeviceAuthenticator.start_azure_management()
+{:ok, pid} = DeviceAuthenticator.start_azure_management()
 
 #
 # a `PID` is a 'process ID', i.e. the ID of an actor, running on an Erlang VM
@@ -72,22 +74,33 @@ Process.info(pid)[:status]
 
 pid |> DeviceAuthenticator.get_device_code()
 
-#
-# Now send a "get_device_code" message to the actor
-# 
-{ :ok, token_resonse } = pid |> DeviceAuthenticator.get_device_code()
+pid |> DeviceAuthenticator.get_stage()
 
 # Pattern matching
-{ :ok, %{ access_token: token } } = pid |> DeviceAuthenticator.get_device_code()
+{ :ok, %{ access_token: token } } = pid |> DeviceAuthenticator.get_token()
+# Functional (LINQ-style) navigating through the structure
+token = pid |> DeviceAuthenticator.get_token() |> elem(1) |> Map.get(:access_token)
+
+pid |> DeviceAuthenticator.force_refresh()
+pid |> DeviceAuthenticator.get_token() |> elem(1) |> Map.get(:access_token) |> JOSE.JWT.peek() |> Map.get(:fields) |> Map.get("iat")
 
 token
-
 token |> JOSE.JWT.peek()
-
 token |> JOSE.JWT.peek() |> Map.get(:fields) |> Enum.map( fn({k,v}) -> "#{k |> String.pad_trailing(12, " ")}: #{inspect(v)}" end) |> Enum.join("\n") |> IO.puts()
 
-# Functional (LINQ-style) navigating through the structure
-token = pid |> DeviceAuthenticator.get_device_code() |> elem(1) |> Map.get(:access_token)
+
+#
+# Sign in to Storage using Azure AD
+#
+alias Microsoft.Azure.ActiveDirectory.DeviceAuthenticator
+alias Microsoft.Azure.ActiveDirectory.DeviceAuthenticator.State
+alias Microsoft.Azure.Storage.{Container, Blob}
+{:ok, storage_pid} = %State{ resource: "https://erlang.blob.core.windows.net/", tenant_id: "chgeuerfte.onmicrosoft.com", azure_environment: :azure_global } |> DeviceAuthenticator.start()
+storage_pid |> DeviceAuthenticator.get_device_code()
+storage_pid |> DeviceAuthenticator.get_token()
+%Microsoft.Azure.Storage{account_name: "erlang", account_key: :nil, cloud_environment_suffix: "core.windows.net" }  |> Container.list_containers_aad(fn () -> storage_pid |> DeviceAuthenticator.get_token |> elem(1) |> Map.get(:access_token) end)
+
+
 
 #
 # Create an HttpClient with BearerToken set
@@ -144,7 +157,7 @@ storage |> Container.list_containers() |> elem(1) |> Map.get(:containers) |> Enu
 #
 # Delete a bunch of containers
 #
-["philippdemo123"] |> Enum.map(fn(c) -> storage |> Container.new(c) |> Container.delete_container() end)
+["leasetest"] |> Enum.map(fn(c) -> storage |> Container.new(c) |> Container.delete_container() end)
 
 
 container_name = "oci123"

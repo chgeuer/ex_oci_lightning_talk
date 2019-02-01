@@ -21,14 +21,18 @@ defmodule ExOciLightningTalk.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      #{ :ex_microsoft_azure_storage, github: "chgeuer/ex_microsoft_azure_storage" },
-      { :ex_microsoft_azure_storage, path: "../ex_microsoft_azure_storage" },
+      # { :ex_microsoft_azure_storage, github: "chgeuer/ex_microsoft_azure_storage" },
+      {:ex_microsoft_azure_storage, path: "../ex_microsoft_azure_storage"},
       # { :ex_microsoft_azure_utils, github: "chgeuer/ex_microsoft_azure_utils" },
-      { :ex_microsoft_azure_utils, path: "../ex_microsoft_azure_utils" },
-      { :ex_microsoft_azure_management_compute, path: "../ex_microsoft_azure_management/Microsoft.Azure.Management.Compute"},
-      { :ex_microsoft_azure_management_resources, path: "../ex_microsoft_azure_management/Microsoft.Azure.Management.Resources"},
-      { :ex_microsoft_azure_management_subscription, path: "../ex_microsoft_azure_management/Microsoft.Azure.Management.Subscription"},
-      { :ex_microsoft_azure_management_storage, path: "../ex_microsoft_azure_management/Microsoft.Azure.Management.Storage"}
+      {:ex_microsoft_azure_utils, path: "../ex_microsoft_azure_utils"},
+      {:ex_microsoft_azure_management_compute,
+       path: "../ex_microsoft_azure_management/Microsoft.Azure.Management.Compute"},
+      {:ex_microsoft_azure_management_resources,
+       path: "../ex_microsoft_azure_management/Microsoft.Azure.Management.Resources"},
+      {:ex_microsoft_azure_management_subscription,
+       path: "../ex_microsoft_azure_management/Microsoft.Azure.Management.Subscription"},
+      {:ex_microsoft_azure_management_storage,
+       path: "../ex_microsoft_azure_management/Microsoft.Azure.Management.Storage"}
     ]
   end
 end
