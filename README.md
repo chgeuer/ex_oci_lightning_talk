@@ -94,11 +94,40 @@ token |> JOSE.JWT.peek() |> Map.get(:fields) |> Enum.map( fn({k,v}) -> "#{k |> S
 #
 alias Microsoft.Azure.ActiveDirectory.DeviceAuthenticator
 alias Microsoft.Azure.ActiveDirectory.DeviceAuthenticator.State
+alias Microsoft.Azure.Storage
 alias Microsoft.Azure.Storage.{Container, Blob}
-{:ok, storage_pid} = %State{ resource: "https://erlang.blob.core.windows.net/", tenant_id: "chgeuerfte.onmicrosoft.com", azure_environment: :azure_global } |> DeviceAuthenticator.start()
+
+storage_account_name = "chgeuermstoll"
+resource = "https://#{storage_account_name}.blob.core.windows.net/"
+
+{:ok, storage_pid} = %State{ resource: resource, tenant_id: "chgeuerfte.onmicrosoft.com", azure_environment: :azure_global } |> DeviceAuthenticator.start()
+
 storage_pid |> DeviceAuthenticator.get_device_code()
-storage_pid |> DeviceAuthenticator.get_token()
-%Microsoft.Azure.Storage{account_name: "erlang", account_key: :nil, cloud_environment_suffix: "core.windows.net" }  |> Container.list_containers_aad(fn () -> storage_pid |> DeviceAuthenticator.get_token |> elem(1) |> Map.get(:access_token) end)
+
+aad_token_provider = fn (resource) ->
+    resource
+    |> IO.inspect(label: "resource")
+
+    storage_pid
+    |> DeviceAuthenticator.get_token
+    |> elem(1)
+    |> Map.get(:access_token)
+end
+
+aad_token_provider.(resource)
+
+ctx = %Microsoft.Azure.Storage{
+    account_name: storage_account_name,
+    aad_token_provider: aad_token_provider,
+    cloud_environment_suffix: "core.windows.net"
+}
+
+Fiddler.enable()
+
+
+ctx |> Container.list_containers()
+
+
 
 
 
