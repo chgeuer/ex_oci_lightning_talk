@@ -8,6 +8,9 @@ cd /mnt/c/github/chgeuer/ex_oci_lightning_talk
 /mnt/c/Program\ Files\ \(x86\)/Elixir/bin/iex -S mix
 ```
 
+
+## Elixir
+
 ```elixir
 #
 # Elixir - What's this |> about?
@@ -20,10 +23,62 @@ Kernel.-(10, 2)
 
 # 10 - 2 - 4
 10 |> Kernel.-(2) |> Kernel.-(1)
+```
+## Storage demo
 
+```elixir
+#
+# Sign in to Storage using Azure AD
+#
+alias Microsoft.Azure.ActiveDirectory.{DeviceAuthenticator, DeviceAuthenticatorSupervisor}
+alias Microsoft.Azure.ActiveDirectory.DeviceAuthenticator.Model.State
+alias Microsoft.Azure.Storage
+alias Microsoft.Azure.Storage.{Container, Blob, Queue, BlobStorage}
 
+storage_account_name = "erlang"
+resource = "https://#{storage_account_name}.blob.core.windows.net/"
+
+{:ok, storage_pid} = %State{ resource: resource, tenant_id: "chgeuerfte.onmicrosoft.com", azure_environment: :azure_global } |> DeviceAuthenticatorSupervisor.start_link()
+
+storage_pid |> DeviceAuthenticator.get_device_code()
+
+aad_token_provider = fn (_resource) ->
+    storage_pid |> DeviceAuthenticator.get_token
+    |> elem(1)
+    |> Map.get(:access_token)
+end
+
+aad_token_provider.(resource)
+
+storage_pid |> DeviceAuthenticatorSupervisor.get_agent_state()
+
+storage_pid |> DeviceAuthenticatorSupervisor.get_worker_pid() |> Process.exit(:kill)
+
+storage = %Storage{
+    cloud_environment_suffix: "core.windows.net",
+    account_name: storage_account_name,
+    aad_token_provider: aad_token_provider
+}
+
+storage = %Storage{
+    cloud_environment_suffix: "core.windows.net",
+    account_name: "SAMPLE_STORAGE_ACCOUNT_NAME" |> System.get_env(),
+    account_key: "SAMPLE_STORAGE_ACCOUNT_KEY" |> System.get_env()
+}
+
+Fiddler.enable()
+
+{:ok, %{ containers: container }} = storage |> Container.list_containers()
+
+{:ok, %{ blobs: blobs }} = storage |> Container.new("videos") |> Container.list_blobs()
+{:ok, %{ blobs: blobs }} = storage |> Container.new("tar") |> Container.list_blobs()
+{:ok, %{ blobs: blobs }} = storage |> Container.new("philipp") |> Container.list_blobs()
+```
+
+## The rest
+
+```elixir
 Timex.now() |> Timex.add(Timex.Duration.from_seconds(3600))
-
 
 #
 # Call into Azure
@@ -89,46 +144,13 @@ token |> JOSE.JWT.peek()
 token |> JOSE.JWT.peek() |> Map.get(:fields) |> Enum.map( fn({k,v}) -> "#{k |> String.pad_trailing(12, " ")}: #{inspect(v)}" end) |> Enum.join("\n") |> IO.puts()
 
 
+
+
 #
-# Sign in to Storage using Azure AD
+# Turn on logging
 #
-alias Microsoft.Azure.ActiveDirectory.DeviceAuthenticator
-alias Microsoft.Azure.ActiveDirectory.DeviceAuthenticator.State
-alias Microsoft.Azure.Storage
-alias Microsoft.Azure.Storage.{Container, Blob}
-
-storage_account_name = "chgeuermstoll"
-resource = "https://#{storage_account_name}.blob.core.windows.net/"
-
-{:ok, storage_pid} = %State{ resource: resource, tenant_id: "chgeuerfte.onmicrosoft.com", azure_environment: :azure_global } |> DeviceAuthenticator.start()
-
-storage_pid |> DeviceAuthenticator.get_device_code()
-
-aad_token_provider = fn (resource) ->
-    resource
-    |> IO.inspect(label: "resource")
-
-    storage_pid
-    |> DeviceAuthenticator.get_token
-    |> elem(1)
-    |> Map.get(:access_token)
-end
-
-aad_token_provider.(resource)
-
-ctx = %Microsoft.Azure.Storage{
-    account_name: storage_account_name,
-    aad_token_provider: aad_token_provider,
-    cloud_environment_suffix: "core.windows.net"
-}
-
-Fiddler.enable()
-
-
-ctx |> Container.list_containers()
-
-
-
+props = storage |> BlobStorage.get_blob_service_properties() |> elem(1) |> Map.get(:service_properties)
+storage |> BlobStorage.set_blob_service_properties(Map.put(props, :logging, %Logging{ version: "1.0", delete: :true, read: true, write: true, retention_policy: %RetentionPolicy{ days: 30, enabled: true }}))
 
 
 #
@@ -170,13 +192,15 @@ resource_group_name = storage_account_id |> String.split("/") |> Enum.at(4)
 {:ok, %{keys: [ %{value: storage_account_key}, _]}} = conn |> StorageManagement.storage_accounts_list_keys(resource_group_name, storage_account_name, api_version.storage, subscription_id)
 
 
+alias Microsoft.Azure.Storage
+alias Microsoft.Azure.Storage.{Container, Blob, Queue}
 storage_account_name = "SAMPLE_STORAGE_ACCOUNT_NAME" |> System.get_env()
 storage_account_key = "SAMPLE_STORAGE_ACCOUNT_KEY" |> System.get_env()
+storage = %Storage{account_name: storage_account_name, account_key: storage_account_key, cloud_environment_suffix: "core.windows.net" }
+storage |> Queue.new("queue1") |> Queue.get_metadata()
+storage |> Queue.new("queue1") |> Queue.put_message("Yeah, jjjj")
 
-
-storage = %Microsoft.Azure.Storage{account_name: storage_account_name, account_key: storage_account_key, cloud_environment_suffix: "core.windows.net" }
-
-alias Microsoft.Azure.Storage.{Container, Blob}
+storage |> Container.new("oci123") |> Container.get_container_acl
 
 #
 # List container names
@@ -186,10 +210,10 @@ storage |> Container.list_containers() |> elem(1) |> Map.get(:containers) |> Enu
 #
 # Delete a bunch of containers
 #
-["leasetest"] |> Enum.map(fn(c) -> storage |> Container.new(c) |> Container.delete_container() end)
+["oci123", "oci1234", "ocid1"] |> Enum.map(fn(c) -> storage |> Container.new(c) |> Container.delete_container() end)
 
 
-container_name = "oci123"
+container_name = "ocid2"
 
 storage |> Container.new(container_name) |> Container.create_container()
 

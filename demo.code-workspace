@@ -1,0 +1,32 @@
+{
+	"settings": {
+		"workbench.colorTheme": "Monokai Dimmed",
+		"workbench.colorCustomizations": {
+			"activityBar.background": "#275b9a",
+			"titleBar.activeBackground": "#275b9a",
+			"titleBar.inactiveBackground": "#275b9a99",
+			"statusBar.background": "#275b9a",
+			"statusBarItem.hoverBackground": "#3173c3"
+		}
+	},
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "C:\\github\\chgeuer\\ex_microsoft_azure_utils"
+		},
+		{
+			"path": "C:\\github\\chgeuer\\ex_microsoft_azure_storage"
+		},
+		{
+			"path": "C:\\github\\chgeuer\\ex_microsoft_azure_management"
+		},
+		{
+			"path": "C:\\github\\chgeuer\\ex_microsoft_azure_management_generator"
+		},
+		{
+			"path": "C:\\github\\chgeuer\\ex_optional_args"
+		}
+	]
+}
