@@ -69,10 +69,10 @@ storage = %Storage{
 Fiddler.enable()
 
 {:ok, %{ containers: container }} = storage |> Container.list_containers()
+container |> Enum.map(&(&1.name))
 
-{:ok, %{ blobs: blobs }} = storage |> Container.new("videos") |> Container.list_blobs()
-{:ok, %{ blobs: blobs }} = storage |> Container.new("tar") |> Container.list_blobs()
-{:ok, %{ blobs: blobs }} = storage |> Container.new("philipp") |> Container.list_blobs()
+storage |> Container.new("videos") |> Container.list_blobs() |> elem(1) |> Map.get(:blobs) |> Enum.map(&(&1.name))
+
 ```
 
 ## The rest
@@ -142,9 +142,6 @@ pid |> DeviceAuthenticator.get_token() |> elem(1) |> Map.get(:access_token) |> J
 token
 token |> JOSE.JWT.peek()
 token |> JOSE.JWT.peek() |> Map.get(:fields) |> Enum.map( fn({k,v}) -> "#{k |> String.pad_trailing(12, " ")}: #{inspect(v)}" end) |> Enum.join("\n") |> IO.puts()
-
-
-
 
 #
 # Turn on logging
